@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:NotEnoughContent"
         mc:Ignorable="d"
-        Title="NotEnoughContent r1" Height="470.36" Width="450" ResizeMode="CanMinimize">
+        Title="NotEnoughContent r1" Height="600" Width="450" ResizeMode="CanMinimize">
     <Grid>
         <Rectangle Fill="#FFF4F4F5" Margin="10,10,10,0" Stroke="Black" Drop="Rectangle_Drop" AllowDrop="True" Height="64" VerticalAlignment="Top"/>
         <Label Content="index.html hierher ziehen..." Margin="87,23,0,0" FontSize="22" Height="39" VerticalAlignment="Top" HorizontalAlignment="Left" Width="269" Drop="Rectangle_Drop" AllowDrop="True"/>
@@ -19,7 +19,7 @@
                     <TextBox x:Name="TextBoxAudiofile" HorizontalAlignment="Left" Height="23" Margin="10,36,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="293" AllowDrop="True" Drop="TextBoxAudiofile_Drop" PreviewDragOver="TextBoxAudiofile_PreviewDragOver"/>
                     <Label Content="Audiodatei" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
                     <Button x:Name="ButtonOpenAudio" Content="Öffnen..." Margin="308,36,10,0" VerticalAlignment="Top" Height="23" Click="ButtonOpenAudio_Click"/>
-                    <Button x:Name="ButtonAudioInsert" Content="Einfügen" Margin="10,0,10,10" Height="40" VerticalAlignment="Bottom" Click="ButtonAudioInsert_Click"/>
+                    <Button x:Name="ButtonAudioInsert" Content="Einfügen" Margin="10,168,10,0" Click="ButtonAudioInsert_Click" Height="40" VerticalAlignment="Top"/>
                     <GroupBox Header="Eigenschaften" Height="99" Margin="10,64,10,0" VerticalAlignment="Top">
                         <Grid>
                             <Grid.RowDefinitions>
@@ -33,14 +33,16 @@
                                     <ColumnDefinition Width="1*" />
                                     <ColumnDefinition Width="1*" />
                                 </Grid.ColumnDefinitions>
-                                <CheckBox x:Name="CheckBoxLoop" Grid.Column="0" Content="Loop" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <CheckBox x:Name="CheckBoxLoop" Grid.Column="0" Content="Loop" HorizontalAlignment="Center" VerticalAlignment="Center" IsChecked="True"/>
                                 <CheckBox x:Name="CheckBoxControls" Grid.Column="1" Content="Controls" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                <CheckBox x:Name="CheckBoxAutoplay" Grid.Column="2" Content="Autoplay" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <CheckBox x:Name="CheckBoxAutoplay" Grid.Column="2" Content="Autoplay" VerticalAlignment="Center" HorizontalAlignment="Center" IsChecked="True"/>
                                 <CheckBox x:Name="CheckBoxMuted" Grid.Column="3" Content="Muted" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Grid>
                             <Button x:Name="ButtonAudioHelp" Grid.Row="1" Content="Hilfe..." Click="ButtonAudioHelp_Click"/>
                         </Grid>
                     </GroupBox>
+                    <ListBox x:Name="ListBoxMods" Margin="10,213,10,40"/>
+                    <Button Content="Eintrag entfernen" Margin="0,0,10,10" Height="25" HorizontalAlignment="Right" Width="96" VerticalAlignment="Bottom" Click="ButtonDelAudio_Click"/>
                 </Grid>
             </TabItem>
         </TabControl>

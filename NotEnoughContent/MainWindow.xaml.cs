@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace NotEnoughContent
@@ -12,6 +13,8 @@ namespace NotEnoughContent
     {
         // Dict: Title - ID
         public Dictionary<string, string> SlidesDict { get; private set; }
+        public List<string> mods { get; private set; }
+        string mainDir;
 
         public MainWindow()
         {
@@ -36,7 +39,7 @@ namespace NotEnoughContent
 
         private void HandleIndexFile(string file)
         {
-            string mainDir = new FileInfo(file).Directory.FullName;
+            mainDir = new FileInfo(file).Directory.FullName;
             string manifestPath = Path.Combine(mainDir, "content\\manifest.json");
             string[] manifest = File.ReadAllLines(manifestPath);
 
@@ -72,7 +75,32 @@ namespace NotEnoughContent
             }
             ComboBoxSlides.ItemsSource = SlidesDict;
 
+            LoadMods();
+
             LabelStatus.Content = "Projekt \"" + titleStr + "\" erfolgreich geladen.";
+        }
+
+        private void LoadMods()
+        {
+            mods = new List<string>();
+            foreach (string line in File.ReadLines(Path.Combine(mainDir, @"content\assets\course.js")))
+            {
+                if (line.EndsWith("//Added by NotEnoughContent"))
+                { //Expandable when necessary.
+                    switch (line)
+                    {
+                        case string audio when audio.Contains("audio"):
+                            string currMod = line.Remove(0, 45);
+                            currMod = currMod.Remove(currMod.Length - 38);
+                            mods.Add(currMod);
+                            break;
+                        default:
+                            MessageBox.Show("Unbekannte Modfikationen gefunden. Wurden sie mit einer neueren Version von NotEnoughContent erstellt?");
+                            break;
+                    }
+                }
+            }
+            ListBoxMods.ItemsSource = mods;
         }
 
         private void TextBoxAudiofile_Drop(object sender, DragEventArgs e)
@@ -142,7 +170,56 @@ namespace NotEnoughContent
             }
             else
             {
+                string audioName = Path.GetFileName(TextBoxAudiofile.Text);
+                string slideName = ((KeyValuePair<string, string>)ComboBoxSlides.SelectedItem).Value;
+                string slideId = ((KeyValuePair<string, string>)ComboBoxSlides.SelectedItem).Key;
+                string jsInsert = "$.getScript(\"content/assets/notenoughcontent/" + audioName + "-" + slideName + "-audio.js\")//Added by NotEnoughContent";
                 
+                List<string> jsMain = new List<string>() { //This is the JS code necessary to watch the main viewport container for changes and insert an html audio element.
+                    "var observer = new MutationObserver(audio" + slideName + ");",
+                    "var targetNode = document.getElementById(\"imc-viewport-container\");",
+                    "observer.observe(targetNode, { childList: true, subtree: true });",
+                    "function audio" + slideName + "() {",
+                    "setTimeout(function() {",
+                    "if (document.getElementById(\"" + slideId + "\").style.transform != \"\" && document.getElementById(\"audio" + slideName + "\") == null){",
+                    "var audio" + slideName + "node = document.getElementById(\"" + slideId + "\");",
+                    "var audio" + slideName + "element = document.createElement(\"audio\");",
+                    "audio" + slideName + "element.src = \"content/assets/notenoughcontent/" + audioName + "\";",
+                    "audio" + slideName + "element.id = \"audio" + slideName + "\";",
+                    "audio" + slideName + "node.appendChild(audio" + slideName + "element);",
+                    "}",
+                    "}, 200);",
+                    "}"
+                };
+                if (CheckBoxAutoplay.IsChecked == true)
+                    jsMain.Insert(9, "audio" + slideName + "element.autoplay = true;");
+                if (CheckBoxControls.IsChecked == true)
+                    jsMain.Insert(9, "audio" + slideName + "element.controls = true;");
+                if (CheckBoxLoop.IsChecked == true)
+                    jsMain.Insert(9, "audio" + slideName + "element.loop = true;");
+                if (CheckBoxMuted.IsChecked == true)
+                    jsMain.Insert(9, "audio" + slideName + "element.muted = true;");
+
+                string workDir = Path.Combine(mainDir, @"content\assets\notenoughcontent\");
+                if (!Directory.Exists(workDir))
+                    Directory.CreateDirectory(workDir);
+                File.Copy(TextBoxAudiofile.Text, Path.Combine(workDir, audioName), true);
+
+                string filePath = Path.Combine(workDir, audioName + "-" + slideName + "-audio.js");
+                using (StreamWriter outputFile = new StreamWriter(filePath))
+                {
+                    foreach (string line in jsMain)
+                    {
+                        outputFile.WriteLine(line);
+                    }
+                }
+                filePath = Path.Combine(mainDir, @"content\assets\course.js");
+                using (StreamWriter outputFile = new StreamWriter(filePath, true))
+                {
+                    outputFile.WriteLine(jsInsert);
+                }
+
+                LoadMods();
             }
         }
 
@@ -152,6 +229,32 @@ namespace NotEnoughContent
                 ToggleAudioEnabled(true);
             else
                 ToggleAudioEnabled(false);
+        }
+
+        private void ButtonDelAudio_Click(object sender, RoutedEventArgs e)
+        {
+            string tempFile = Path.GetTempFileName();
+            string filePath = Path.Combine(mainDir, @"content\assets\course.js");
+            string name = ListBoxMods.SelectedItem.ToString();
+
+            using (var sr = new StreamReader(filePath))
+            using (var sw = new StreamWriter(tempFile))
+            {
+                string line;
+
+                while ((line = sr.ReadLine()) != null)
+                {
+                    if (!line.Contains(name))
+                        sw.WriteLine(line);
+                }
+            }
+
+            File.Delete(filePath);
+            File.Move(tempFile, filePath);
+
+            File.Delete(Path.Combine(mainDir, @"content\assets\notenoughcontent\", name + "-audio.js"));
+            LoadMods();
+            //This method always leaves behind the audio file itself. This is intentional, as it may be used by another extension.
         }
     }
 }
