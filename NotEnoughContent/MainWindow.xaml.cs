@@ -1,8 +1,12 @@
-﻿using System;
+﻿using Svg;
+using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Reflection;
 using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace NotEnoughContent
 {
@@ -43,7 +47,6 @@ namespace NotEnoughContent
             mainDir = new FileInfo(file).Directory.FullName;
             string manifestPath = Path.Combine(mainDir, "content\\manifest.json");
             string[] manifest = File.ReadAllLines(manifestPath);
-
             List<int> titleLine = new List<int>();
             string titleStr = "";
             for (int i = 0; i < manifest.Length; i++)
@@ -60,6 +63,14 @@ namespace NotEnoughContent
                 }
             }
 
+            PopulateAudio(titleLine, manifest);
+            PopulateSplash();
+
+            LabelStatus.Content = "Projekt \"" + titleStr + "\" erfolgreich geladen.";
+        }
+
+        private void PopulateAudio(List<int> titleLine, string[] manifest)
+        {
             SlidesDict = new Dictionary<string, string>();
 
             foreach (int lineNo in titleLine)
@@ -78,8 +89,42 @@ namespace NotEnoughContent
 
             LoadMods();
 
-            LabelStatus.Content = "Projekt \"" + titleStr + "\" erfolgreich geladen.";
             ButtonDelAudio.IsEnabled = true;
+        }
+
+        private void PopulateSplash()
+        {
+            //Find Image
+            string logoPath = null;
+            string[] loadscreenHtml = File.ReadAllLines(Path.Combine(mainDir, @"resources\style\controls\loadscreen.ctl.html"));
+            foreach (string line in loadscreenHtml)
+                if (line.Contains("resources/style/images/"))
+                    logoPath = line.Trim();
+            logoPath = logoPath.Replace("<img src=\"", "").Replace("\"/>", "");
+            logoPath = Path.GetFullPath(Path.Combine(mainDir, logoPath));
+
+            loadSplash(logoPath);
+        }
+
+        private void loadSplash(string logoPath)
+        {
+            bool isSvg = logoPath.EndsWith(".svg");
+
+            BitmapImage img = new BitmapImage();
+            img.BeginInit();
+            //Set Image
+            if (isSvg)
+            {
+                var svgDoc = SvgDocument.Open(logoPath);
+                MemoryStream ms = new MemoryStream();
+                svgDoc.Draw().Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                ms.Position = 0;
+                img.StreamSource = ms;
+            }
+            else
+                img.UriSource = new Uri(logoPath);
+            img.EndInit();
+            ImageLogo.Source = img;
         }
 
         private void LoadMods()
@@ -147,7 +192,7 @@ namespace NotEnoughContent
                 "Muted: Audiodatei stummschalten.\n", "Erklärung");
         }
 
-        private void TextBoxAudiofile_PreviewDragOver(object sender, DragEventArgs e)
+        private void TextBox_PreviewDragOver(object sender, DragEventArgs e)
         {
             e.Handled = true;
         }
@@ -235,34 +280,37 @@ namespace NotEnoughContent
 
         private void ButtonDelAudio_Click(object sender, RoutedEventArgs e)
         {
-            try
+            if (MessageBox.Show("Möchten Sie diesen Eintrag entfernen?", "Löschen?", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
             {
-                string tempFile = Path.GetTempFileName();
-                string filePath = Path.Combine(mainDir, @"content\assets\course.js");
-                string name = ListBoxMods.SelectedItem.ToString();
-
-                using (var sr = new StreamReader(filePath))
-                using (var sw = new StreamWriter(tempFile))
+                try
                 {
-                    string line;
+                    string tempFile = Path.GetTempFileName();
+                    string filePath = Path.Combine(mainDir, @"content\assets\course.js");
+                    string name = ListBoxMods.SelectedItem.ToString();
 
-                    while ((line = sr.ReadLine()) != null)
+                    using (var sr = new StreamReader(filePath))
+                    using (var sw = new StreamWriter(tempFile))
                     {
-                        if (!line.Contains(name))
-                            sw.WriteLine(line);
+                        string line;
+
+                        while ((line = sr.ReadLine()) != null)
+                        {
+                            if (!line.Contains(name))
+                                sw.WriteLine(line);
+                        }
                     }
+
+                    File.Delete(filePath);
+                    File.Move(tempFile, filePath);
+
+                    File.Delete(Path.Combine(mainDir, @"content\assets\notenoughcontent\", name + "-audio.js"));
+                    LoadMods();
+                    //This method always leaves behind the audio file itself. This is intentional, as it may be used by another extension.
                 }
-
-                File.Delete(filePath);
-                File.Move(tempFile, filePath);
-
-                File.Delete(Path.Combine(mainDir, @"content\assets\notenoughcontent\", name + "-audio.js"));
-                LoadMods();
-                //This method always leaves behind the audio file itself. This is intentional, as it may be used by another extension.
-            }
-            catch (NullReferenceException)
-            {
-                MessageBox.Show("Kein Eintrag ausgewählt.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                catch (NullReferenceException)
+                {
+                    MessageBox.Show("Kein Eintrag ausgewählt.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
     }

@@ -14,9 +14,9 @@
         <ComboBox x:Name="ComboBoxSlides" Margin="10,136,10,0" VerticalAlignment="Top" DisplayMemberPath="Value" SelectedValuePath="Key" SelectionChanged="ComboBoxSlides_SelectionChanged"/>
         <Label Content="Folie" HorizontalAlignment="Left" Margin="10,110,0,0" VerticalAlignment="Top"/>
         <TabControl Margin="10,163,10,10">
-            <TabItem Header="audio">
+            <TabItem Header="Audio">
                 <Grid Background="#FFE5E5E5">
-                    <TextBox x:Name="TextBoxAudiofile" HorizontalAlignment="Left" Height="23" Margin="10,36,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="293" AllowDrop="True" Drop="TextBoxAudiofile_Drop" PreviewDragOver="TextBoxAudiofile_PreviewDragOver"/>
+                    <TextBox x:Name="TextBoxAudiofile" HorizontalAlignment="Left" Height="23" Margin="10,36,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="293" AllowDrop="True" Drop="TextBoxAudiofile_Drop" PreviewDragOver="TextBox_PreviewDragOver"/>
                     <Label Content="Audiodatei" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
                     <Button x:Name="ButtonOpenAudio" Content="Öffnen..." Margin="308,36,10,0" VerticalAlignment="Top" Height="23" Click="ButtonOpenAudio_Click"/>
                     <Button x:Name="ButtonAudioInsert" Content="Einfügen" Margin="10,168,10,0" Click="ButtonAudioInsert_Click" Height="40" VerticalAlignment="Top"/>
@@ -43,6 +43,21 @@
                     </GroupBox>
                     <ListBox x:Name="ListBoxMods" Margin="10,213,10,40"/>
                     <Button x:Name="ButtonDelAudio" Content="Eintrag entfernen" Margin="0,0,10,10" Height="25" HorizontalAlignment="Right" Width="96" VerticalAlignment="Bottom" Click="ButtonDelAudio_Click" IsEnabled="False"/>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Begrüßungslogo">
+                <Grid Background="#FFE5E5E5">
+                    <Label Content="Neues Logo" HorizontalAlignment="Left" Margin="10,141,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="TextBoxSplashfile" HorizontalAlignment="Left" Height="23" Margin="10,167,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="293" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver"/>
+                    <Button x:Name="ButtonOpenSplash" Content="Öffnen..." Margin="308,167,10,0" VerticalAlignment="Top" Height="23" Click="ButtonOpenAudio_Click"/>
+                    <Button x:Name="ButtonSplashInsert" Content="Austauschen" Margin="10,320,10,10" Click="ButtonAudioInsert_Click"/>
+                    <Image x:Name="ImageLogo" HorizontalAlignment="Left" Height="100" Margin="10,36,0,0" VerticalAlignment="Top" Width="398"/>
+                    <Label Content="Aktuelles Logo" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Zertifikat">
+                <Grid Background="#FFE5E5E5">
+
                 </Grid>
             </TabItem>
         </TabControl>
