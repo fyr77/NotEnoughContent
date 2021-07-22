@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
+using System.Reflection;
 using System.Windows;
 
 namespace NotEnoughContent
@@ -19,6 +19,7 @@ namespace NotEnoughContent
         public MainWindow()
         {
             InitializeComponent();
+            this.Title += Assembly.GetExecutingAssembly().GetName().Version.Major.ToString() + "." + Assembly.GetExecutingAssembly().GetName().Version.Minor.ToString();
             ToggleAudioEnabled(false);
         }
 
@@ -78,6 +79,7 @@ namespace NotEnoughContent
             LoadMods();
 
             LabelStatus.Content = "Projekt \"" + titleStr + "\" erfolgreich geladen.";
+            ButtonDelAudio.IsEnabled = true;
         }
 
         private void LoadMods()
@@ -95,7 +97,7 @@ namespace NotEnoughContent
                             mods.Add(currMod);
                             break;
                         default:
-                            MessageBox.Show("Unbekannte Modfikationen gefunden. Wurden sie mit einer neueren Version von NotEnoughContent erstellt?");
+                            MessageBox.Show("Unbekannte Modfikationen gefunden. Wurden sie mit einer neueren Version von NotEnoughContent erstellt?", "Warnung", MessageBoxButton.OK, MessageBoxImage.Warning);
                             break;
                     }
                 }
@@ -233,28 +235,35 @@ namespace NotEnoughContent
 
         private void ButtonDelAudio_Click(object sender, RoutedEventArgs e)
         {
-            string tempFile = Path.GetTempFileName();
-            string filePath = Path.Combine(mainDir, @"content\assets\course.js");
-            string name = ListBoxMods.SelectedItem.ToString();
-
-            using (var sr = new StreamReader(filePath))
-            using (var sw = new StreamWriter(tempFile))
+            try
             {
-                string line;
+                string tempFile = Path.GetTempFileName();
+                string filePath = Path.Combine(mainDir, @"content\assets\course.js");
+                string name = ListBoxMods.SelectedItem.ToString();
 
-                while ((line = sr.ReadLine()) != null)
+                using (var sr = new StreamReader(filePath))
+                using (var sw = new StreamWriter(tempFile))
                 {
-                    if (!line.Contains(name))
-                        sw.WriteLine(line);
+                    string line;
+
+                    while ((line = sr.ReadLine()) != null)
+                    {
+                        if (!line.Contains(name))
+                            sw.WriteLine(line);
+                    }
                 }
+
+                File.Delete(filePath);
+                File.Move(tempFile, filePath);
+
+                File.Delete(Path.Combine(mainDir, @"content\assets\notenoughcontent\", name + "-audio.js"));
+                LoadMods();
+                //This method always leaves behind the audio file itself. This is intentional, as it may be used by another extension.
             }
-
-            File.Delete(filePath);
-            File.Move(tempFile, filePath);
-
-            File.Delete(Path.Combine(mainDir, @"content\assets\notenoughcontent\", name + "-audio.js"));
-            LoadMods();
-            //This method always leaves behind the audio file itself. This is intentional, as it may be used by another extension.
+            catch (NullReferenceException)
+            {
+                MessageBox.Show("Kein Eintrag ausgewählt.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }

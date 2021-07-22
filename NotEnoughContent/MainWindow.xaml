@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:NotEnoughContent"
         mc:Ignorable="d"
-        Title="NotEnoughContent r1" Height="600" Width="450" ResizeMode="CanMinimize">
+        Title="NotEnoughContent " Height="600" Width="450" ResizeMode="CanMinimize" Icon="icon.png">
     <Grid>
         <Rectangle Fill="#FFF4F4F5" Margin="10,10,10,0" Stroke="Black" Drop="Rectangle_Drop" AllowDrop="True" Height="64" VerticalAlignment="Top"/>
         <Label Content="index.html hierher ziehen..." Margin="87,23,0,0" FontSize="22" Height="39" VerticalAlignment="Top" HorizontalAlignment="Left" Width="269" Drop="Rectangle_Drop" AllowDrop="True"/>
@@ -42,7 +42,7 @@
                         </Grid>
                     </GroupBox>
                     <ListBox x:Name="ListBoxMods" Margin="10,213,10,40"/>
-                    <Button Content="Eintrag entfernen" Margin="0,0,10,10" Height="25" HorizontalAlignment="Right" Width="96" VerticalAlignment="Bottom" Click="ButtonDelAudio_Click"/>
+                    <Button x:Name="ButtonDelAudio" Content="Eintrag entfernen" Margin="0,0,10,10" Height="25" HorizontalAlignment="Right" Width="96" VerticalAlignment="Bottom" Click="ButtonDelAudio_Click" IsEnabled="False"/>
                 </Grid>
             </TabItem>
         </TabControl>
