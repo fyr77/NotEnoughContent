@@ -5,6 +5,7 @@ using System.Drawing;
 using System.IO;
 using System.Reflection;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -25,21 +26,6 @@ namespace NotEnoughContent
             InitializeComponent();
             this.Title += Assembly.GetExecutingAssembly().GetName().Version.Major.ToString() + "." + Assembly.GetExecutingAssembly().GetName().Version.Minor.ToString();
             ToggleAudioEnabled(false);
-        }
-
-        private void Rectangle_Drop(object sender, DragEventArgs e)
-        {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
-            {
-                // Note that you can have more than one file.
-                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
-
-                if (files[0].Contains("index.html"))
-                {
-                    // Pass file to handler.
-                    HandleIndexFile(files[0]);
-                }
-            }
         }
 
         private void HandleIndexFile(string file)
@@ -103,10 +89,15 @@ namespace NotEnoughContent
             logoPath = logoPath.Replace("<img src=\"", "").Replace("\"/>", "");
             logoPath = Path.GetFullPath(Path.Combine(mainDir, logoPath));
 
-            loadSplash(logoPath);
+            LoadSplash(logoPath);
         }
 
-        private void loadSplash(string logoPath)
+        private void PopulateCss()
+        {
+            TextBoxColorCode.Text = ParseCssBackground();
+        }
+
+        private void LoadSplash(string logoPath)
         {
             bool isSvg = logoPath.EndsWith(".svg");
 
@@ -142,12 +133,66 @@ namespace NotEnoughContent
                             mods.Add(currMod);
                             break;
                         default:
-                            MessageBox.Show("Unbekannte Modfikationen gefunden. Wurden sie mit einer neueren Version von NotEnoughContent erstellt?", "Warnung", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            MessageBox.Show("Unbekannte Modifikationen gefunden. Wurden sie mit einer neueren Version von NotEnoughContent erstellt?", "Warnung", MessageBoxButton.OK, MessageBoxImage.Warning);
                             break;
                     }
                 }
             }
             ListBoxMods.ItemsSource = mods;
+        }
+
+        private void ToggleAudioEnabled(bool enable)
+        {
+            TextBoxAudiofile.IsEnabled = enable;
+            ButtonOpenAudio.IsEnabled = enable;
+            CheckBoxAutoplay.IsEnabled = enable;
+            CheckBoxLoop.IsEnabled = enable;
+            CheckBoxControls.IsEnabled = enable;
+            CheckBoxMuted.IsEnabled = enable;
+            ButtonAudioHelp.IsEnabled = enable;
+            ButtonAudioInsert.IsEnabled = enable;
+        }
+
+        private void HandleAudioFile(string filePath)
+        {
+            TextBoxAudiofile.Text = filePath;
+        }
+
+        private void HandleSplashFile(string filePath)
+        {
+            TextBoxSplashfile.Text = filePath;
+        }
+
+        private string ParseCssBackground()
+        {
+            string cssPath = Path.Combine(mainDir, @"resources\style\loadscreen.css");
+
+            foreach (string line in File.ReadAllLines(cssPath))
+            {
+                if (line.Contains("background-color"))
+                {
+                    string retstr = line.Trim();
+                    retstr = retstr.Remove(retstr.Length - 1).Remove(0, 19);
+                    return retstr;
+                }
+            }
+
+            return null;
+        }
+
+        private void Rectangle_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                // Note that you can have more than one file.
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+
+                if (files[0].Contains("index.html"))
+                {
+                    // Pass file to handler.
+                    HandleIndexFile(files[0]);
+                }
+            }
         }
 
         private void TextBoxAudiofile_Drop(object sender, DragEventArgs e)
@@ -178,11 +223,6 @@ namespace NotEnoughContent
             }
         }
 
-        private void HandleAudioFile(string filePath)
-        {
-            TextBoxAudiofile.Text = filePath;
-        }
-
         private void ButtonAudioHelp_Click(object sender, RoutedEventArgs e)
         {
             MessageBox.Show(
@@ -195,18 +235,6 @@ namespace NotEnoughContent
         private void TextBox_PreviewDragOver(object sender, DragEventArgs e)
         {
             e.Handled = true;
-        }
-
-        private void ToggleAudioEnabled(bool enable)
-        {
-            TextBoxAudiofile.IsEnabled = enable;
-            ButtonOpenAudio.IsEnabled = enable;
-            CheckBoxAutoplay.IsEnabled = enable;
-            CheckBoxLoop.IsEnabled = enable;
-            CheckBoxControls.IsEnabled = enable;
-            CheckBoxMuted.IsEnabled = enable;
-            ButtonAudioHelp.IsEnabled = enable;
-            ButtonAudioInsert.IsEnabled = enable;
         }
 
         private void ButtonAudioInsert_Click(object sender, RoutedEventArgs e)
@@ -280,7 +308,7 @@ namespace NotEnoughContent
 
         private void ButtonDelAudio_Click(object sender, RoutedEventArgs e)
         {
-            if (MessageBox.Show("Möchten Sie diesen Eintrag entfernen?", "Löschen?", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+            if (MessageBox.Show("Möchten Sie diesen Eintrag entfernen?", "Löschen?", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             {
                 try
                 {
@@ -312,6 +340,77 @@ namespace NotEnoughContent
                     MessageBox.Show("Kein Eintrag ausgewählt.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
+        }
+
+        private void ButtonOpenSplash_Click(object sender, RoutedEventArgs e)
+        {
+            Microsoft.Win32.OpenFileDialog dlg = new Microsoft.Win32.OpenFileDialog();
+            dlg.DefaultExt = ".png";
+            dlg.Filter = "PNG Files (*.png)|*.png|SVG Files (*.svg)|*.svg|GIF Files (*.gif)|*.gif|JPEG Files (*.jpg, *.jpeg, *.jpe, *.jfif)|*.jpg; *.jpeg; *.jpe; *.jfif";
+
+            bool? result = dlg.ShowDialog();
+            if (result == true)
+            {
+                HandleSplashFile(dlg.FileName);
+            }
+        }
+
+        private void TextBoxSplashfile_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                // Note that you can have more than one file.
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+
+                if (files[0].EndsWith(".png") || files[0].EndsWith(".svg") || files[0].EndsWith(".gif") || files[0].EndsWith(".jpg") || files[0].EndsWith(".jpeg") || files[0].EndsWith(".jpe") || files[0].EndsWith(".jfif"))
+                {
+                    // Pass file to handler.
+                    HandleSplashFile(files[0]);
+                }
+            }
+        }
+
+        private void ButtonSplashInsert_Click(object sender, RoutedEventArgs e)
+        {
+            if (!File.Exists(TextBoxSplashfile.Text) || !(TextBoxSplashfile.Text.EndsWith(".png") || TextBoxSplashfile.Text.EndsWith(".svg") || TextBoxSplashfile.Text.EndsWith(".gif") || TextBoxSplashfile.Text.EndsWith(".jpg") || TextBoxSplashfile.Text.EndsWith(".jpeg") || TextBoxSplashfile.Text.EndsWith(".jpe") || TextBoxSplashfile.Text.EndsWith(".jfif")))
+            {
+                MessageBox.Show("Bitte geben Sie eine gültige Bilddatei an!");
+            }
+            else
+            {
+                string imgName = "loadscreen-" + Path.GetFileName(TextBoxSplashfile.Text);
+
+                string imgPath = Path.Combine(mainDir, @"resources\style\images\", imgName);
+
+                File.Copy(TextBoxSplashfile.Text, imgPath, true);
+
+                string tempFile = Path.GetTempFileName();
+                string filePath = Path.Combine(mainDir, @"resources\style\controls\loadscreen.ctl.html");
+
+                using (var sr = new StreamReader(filePath))
+                using (var sw = new StreamWriter(tempFile))
+                {
+                    string line;
+
+                    while ((line = sr.ReadLine()) != null)
+                    {
+                        if (!line.Contains("resources/style/images/"))
+                            sw.WriteLine(line);
+                        else
+                            sw.WriteLine("<img src=\"resources/style/images/" + imgName + "\"/>");
+                    }
+                }
+
+                File.Delete(filePath);
+                File.Move(tempFile, filePath);
+
+                LoadSplash(imgPath);
+            }
+        }
+
+        private void ButtonColorPicker_Click(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }
