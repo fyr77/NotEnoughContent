@@ -5,10 +5,10 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:NotEnoughContent"
         mc:Ignorable="d"
-        Title="NotEnoughContent " Height="600" Width="450" ResizeMode="CanMinimize" Icon="icon.png">
+        Title="NotEnoughContent " Height="600" Width="450" ResizeMode="CanMinimize" Icon="icon.png" Closing="Window_Closing">
     <Grid>
         <Rectangle Fill="#FFF4F4F5" Margin="10,10,10,0" Stroke="Black" Drop="Rectangle_Drop" AllowDrop="True" Height="64" VerticalAlignment="Top"/>
-        <Label Content="index.html hierher ziehen..." Margin="87,23,0,0" FontSize="22" Height="39" VerticalAlignment="Top" HorizontalAlignment="Left" Width="269" Drop="Rectangle_Drop" AllowDrop="True"/>
+        <Label Content="index.html oder ZIP hierher ziehen..." Margin="35,23,35,0" FontSize="22" Height="39" VerticalAlignment="Top" Drop="Rectangle_Drop" AllowDrop="True"/>
         <Label Content="Status:" HorizontalAlignment="Left" Margin="10,79,0,0" VerticalAlignment="Top"/>
         <Label x:Name="LabelStatus" Content="kein Projekt geladen." HorizontalAlignment="Left" Margin="60,79,0,0" VerticalAlignment="Top"/>
         <ComboBox x:Name="ComboBoxSlides" Margin="10,136,10,0" VerticalAlignment="Top" DisplayMemberPath="Value" SelectedValuePath="Key" SelectionChanged="ComboBoxSlides_SelectionChanged"/>
@@ -66,11 +66,16 @@
                     </GroupBox>
                 </Grid>
             </TabItem>
-            <TabItem Header="Zertifikat">
+            <TabItem x:Name="TabItemCert" Header="Zertifikat" IsEnabled="False">
                 <Grid Background="#FFE5E5E5">
-
+                    <Image x:Name="ImageCertificate" HorizontalAlignment="Left" Height="251" Margin="10,10,0,0" VerticalAlignment="Top" Width="398"/>
+                    <Label Content="Neues Zertifikat" HorizontalAlignment="Left" Margin="10,266,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="TextBoxCert" HorizontalAlignment="Left" Height="23" Margin="10,292,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="293" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" Drop="TextBoxCert_Drop"/>
+                    <Button x:Name="ButtonOpenCert" Content="Öffnen..." Margin="308,292,10,0" VerticalAlignment="Top" Height="23" Click="ButtonOpenCert_Click"/>
+                    <Button x:Name="ButtonCertInsert" Content="Austauschen" Margin="10,320,10,10" Click="ButtonCertInsert_Click"/>
                 </Grid>
             </TabItem>
         </TabControl>
+        <Button x:Name="ButtonSaveZip" Content="ZIP speichern..." Margin="0,110,10,0" VerticalAlignment="Top" Height="21" Visibility="Hidden" Click="ButtonSaveZip_Click" HorizontalAlignment="Right" Width="145"/>
     </Grid>
 </Window>

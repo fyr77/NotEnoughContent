@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Media.Imaging;
 using ColorPickerWPF.Code;
 using System.Text.RegularExpressions;
+using System.IO.Compression;
 
 namespace NotEnoughContent
 {
@@ -21,6 +22,9 @@ namespace NotEnoughContent
         public Dictionary<string, string> SlidesDict { get; private set; }
         public List<string> mods { get; private set; }
         string mainDir;
+        string certPath = null;
+        string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        string titleStr = null;
 
         public MainWindow()
         {
@@ -36,7 +40,6 @@ namespace NotEnoughContent
             string manifestPath = Path.Combine(mainDir, "content\\manifest.json");
             string[] manifest = File.ReadAllLines(manifestPath);
             List<int> titleLine = new List<int>();
-            string titleStr = "";
             for (int i = 0; i < manifest.Length; i++)
             {
                 if (manifest[i].Contains("\"title\":") && !manifest[i + 1].Contains("\"type\": \"root\""))
@@ -54,9 +57,19 @@ namespace NotEnoughContent
             PopulateAudio(titleLine, manifest);
             PopulateSplash();
             PopulateCss();
+            PopulateCert();
 
             ToggleLoadEnabled(true);
             LabelStatus.Content = "Projekt \"" + titleStr + "\" erfolgreich geladen.";
+        }
+
+        private void HandleZipFile(string file)
+        {
+            Directory.CreateDirectory(tempPath);
+            string workDir = Path.Combine(tempPath, @"workdir\");
+            ZipFile.ExtractToDirectory(file, workDir);
+            ButtonSaveZip.Visibility = Visibility.Visible;
+            HandleIndexFile(Path.Combine(workDir, "index.html"));
         }
 
         private void PopulateAudio(List<int> titleLine, string[] manifest)
@@ -69,7 +82,22 @@ namespace NotEnoughContent
                 trimmedTitle = trimmedTitle.Remove(0, 10); //Remove "title":
                 trimmedTitle = trimmedTitle.Remove(trimmedTitle.Length - 2); //Remove stray punctuation at the end
 
-                string trimmedId = manifest[lineNo - 4].Trim();
+                string trimmedId = null;
+
+                for (int i = 0; i < 20; i++)
+                {
+                    if (manifest[lineNo - i].Contains("\"id\""))
+                    {
+                        trimmedId = manifest[lineNo - i].Trim();
+                        break;
+                    }
+                }
+                if (trimmedId == null)
+                {
+                    MessageBox.Show("Fehler beim Laden des Projekts. Fehlercode: PopulateAudio-1", "Kritischer Fehler", MessageBoxButton.OK, MessageBoxImage.Stop);
+                    Environment.Exit(63);
+                }
+
                 trimmedId = trimmedId.Remove(0, 7);
                 trimmedId = trimmedId.Remove(trimmedId.Length - 2);
 
@@ -93,7 +121,7 @@ namespace NotEnoughContent
             logoPath = logoPath.Replace("<img src=\"", "").Replace("\"/>", "");
             logoPath = Path.GetFullPath(Path.Combine(mainDir, logoPath));
 
-            LoadSplash(logoPath);
+            LoadDataToImage(logoPath, ImageLogo);
         }
 
         private void PopulateCss()
@@ -102,25 +130,45 @@ namespace NotEnoughContent
             TextBoxWidth.Text = ParseCssWidth();
         }
 
-        private void LoadSplash(string logoPath)
+        private void PopulateCert()
         {
-            bool isSvg = logoPath.EndsWith(".svg");
+            string dirPath = Path.Combine(mainDir, @"content\assets\");
+            string[] svgFiles = Directory.GetFiles(dirPath, "*.svg");
+            foreach (string file in svgFiles)
+            {
+                if (Path.GetFileName(file).StartsWith("standard"))
+                {
+                    certPath = file;
+                    break;
+                }
+            }
+
+            if (certPath != null)
+            {
+                TabItemCert.IsEnabled = true;
+                LoadDataToImage(certPath, ImageCertificate);
+            }
+        }
+
+        private void LoadDataToImage(string imgPath, System.Windows.Controls.Image imgCtrl)
+        {
+            bool isSvg = imgPath.EndsWith(".svg");
 
             BitmapImage img = new BitmapImage();
             img.BeginInit();
             //Set Image
             if (isSvg)
             {
-                var svgDoc = SvgDocument.Open(logoPath);
+                var svgDoc = SvgDocument.Open(imgPath);
                 MemoryStream ms = new MemoryStream();
                 svgDoc.Draw().Save(ms, System.Drawing.Imaging.ImageFormat.Png);
                 ms.Position = 0;
                 img.StreamSource = ms;
             }
             else
-                img.UriSource = new Uri(logoPath);
+                img.UriSource = new Uri(imgPath);
             img.EndInit();
-            ImageLogo.Source = img;
+            imgCtrl.Source = img;
         }
 
         private void LoadMods()
@@ -165,6 +213,9 @@ namespace NotEnoughContent
             ButtonSplashInsert.IsEnabled = enable;
             TextBoxSplashfile.IsEnabled = enable;
             TextBoxWidth.IsEnabled = enable;
+            TextBoxCert.IsEnabled = enable;
+            ButtonCertInsert.IsEnabled = enable;
+            ButtonOpenCert.IsEnabled = enable;
         }
 
         private void HandleAudioFile(string filePath)
@@ -175,6 +226,11 @@ namespace NotEnoughContent
         private void HandleSplashFile(string filePath)
         {
             TextBoxSplashfile.Text = filePath;
+        }
+
+        private void HandleCertFile(string filePath)
+        {
+            TextBoxCert.Text = filePath;
         }
 
         private string ParseCssBackground()
@@ -249,6 +305,10 @@ namespace NotEnoughContent
                 {
                     // Pass file to handler.
                     HandleIndexFile(files[0]);
+                }
+                else if (files[0].EndsWith(".zip"))
+                {
+                    HandleZipFile(files[0]);
                 }
             }
         }
@@ -462,7 +522,7 @@ namespace NotEnoughContent
                 File.Delete(filePath);
                 File.Move(tempFile, filePath);
 
-                LoadSplash(imgPath);
+                LoadDataToImage(imgPath, ImageLogo);
             }
         }
 
@@ -510,6 +570,71 @@ namespace NotEnoughContent
                 LabelWidthStatus.Content = "nicht OK!";
                 LabelWidthStatus.Foreground = red;
             }
+        }
+
+        private void ButtonOpenCert_Click(object sender, RoutedEventArgs e)
+        {
+            Microsoft.Win32.OpenFileDialog dlg = new Microsoft.Win32.OpenFileDialog();
+            dlg.DefaultExt = ".svg";
+            dlg.Filter = "SVG Files (*.svg)|*.svg";
+
+            bool? result = dlg.ShowDialog();
+            if (result == true)
+            {
+                HandleCertFile(dlg.FileName);
+            }
+        }
+
+        private void TextBoxCert_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                // Note that you can have more than one file.
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+
+                if (files[0].EndsWith(".svg"))
+                {
+                    // Pass file to handler.
+                    HandleCertFile(files[0]);
+                }
+            }
+        }
+
+        private void ButtonCertInsert_Click(object sender, RoutedEventArgs e)
+        {
+            if (!File.Exists(TextBoxCert.Text) || !TextBoxSplashfile.Text.EndsWith(".svg"))
+                MessageBox.Show("Bitte geben Sie eine gültige SVG Datei an!");
+            else
+            {
+                File.Copy(TextBoxCert.Text, certPath, true);
+                LoadDataToImage(certPath, ImageCertificate);
+            }
+        }
+
+        private void ButtonSaveZip_Click(object sender, RoutedEventArgs e)
+        {
+            // Configure save file dialog box
+            Microsoft.Win32.SaveFileDialog dlg = new Microsoft.Win32.SaveFileDialog();
+            dlg.FileName = titleStr; // Default file name
+            dlg.DefaultExt = ".zip"; // Default file extension
+            dlg.Filter = "ZIP Files (.zip)|*.zip"; // Filter files by extension
+
+            // Show save file dialog box
+            bool? result = dlg.ShowDialog();
+
+            // Process save file dialog box results
+            if (result == true)
+            {
+                ZipFile.CreateFromDirectory(Path.Combine(tempPath, "workdir"), Path.Combine(tempPath, titleStr + ".zip"));
+                File.Move(Path.Combine(tempPath, titleStr + ".zip"), dlg.FileName);
+                MessageBox.Show("Speichervorgang abgeschlossen.");
+            }
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
         }
     }
 }
