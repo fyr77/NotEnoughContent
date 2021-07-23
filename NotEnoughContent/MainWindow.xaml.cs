@@ -249,7 +249,7 @@ namespace NotEnoughContent
                 string slideName = ((KeyValuePair<string, string>)ComboBoxSlides.SelectedItem).Value;
                 string slideId = ((KeyValuePair<string, string>)ComboBoxSlides.SelectedItem).Key;
                 string jsInsert = "$.getScript(\"content/assets/notenoughcontent/" + audioName + "-" + slideName + "-audio.js\")//Added by NotEnoughContent";
-                
+
                 List<string> jsMain = new List<string>() { //This is the JS code necessary to watch the main viewport container for changes and insert an html audio element.
                     "var observer = new MutationObserver(audio" + slideName + ");",
                     "var targetNode = document.getElementById(\"imc-viewport-container\");",
