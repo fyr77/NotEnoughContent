@@ -1,13 +1,14 @@
-﻿using Svg;
+﻿using ColorPickerWPF;
+using Svg;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
+using System.Windows.Media;
 using System.IO;
 using System.Reflection;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using ColorPickerWPF.Code;
+using System.Text.RegularExpressions;
 
 namespace NotEnoughContent
 {
@@ -25,7 +26,8 @@ namespace NotEnoughContent
         {
             InitializeComponent();
             this.Title += Assembly.GetExecutingAssembly().GetName().Version.Major.ToString() + "." + Assembly.GetExecutingAssembly().GetName().Version.Minor.ToString();
-            ToggleAudioEnabled(false);
+            ToggleSlideEnabled(false);
+            ToggleLoadEnabled(false);
         }
 
         private void HandleIndexFile(string file)
@@ -51,7 +53,9 @@ namespace NotEnoughContent
 
             PopulateAudio(titleLine, manifest);
             PopulateSplash();
+            PopulateCss();
 
+            ToggleLoadEnabled(true);
             LabelStatus.Content = "Projekt \"" + titleStr + "\" erfolgreich geladen.";
         }
 
@@ -95,6 +99,7 @@ namespace NotEnoughContent
         private void PopulateCss()
         {
             TextBoxColorCode.Text = ParseCssBackground();
+            TextBoxWidth.Text = ParseCssWidth();
         }
 
         private void LoadSplash(string logoPath)
@@ -141,7 +146,7 @@ namespace NotEnoughContent
             ListBoxMods.ItemsSource = mods;
         }
 
-        private void ToggleAudioEnabled(bool enable)
+        private void ToggleSlideEnabled(bool enable)
         {
             TextBoxAudiofile.IsEnabled = enable;
             ButtonOpenAudio.IsEnabled = enable;
@@ -151,6 +156,15 @@ namespace NotEnoughContent
             CheckBoxMuted.IsEnabled = enable;
             ButtonAudioHelp.IsEnabled = enable;
             ButtonAudioInsert.IsEnabled = enable;
+        }
+        private void ToggleLoadEnabled(bool enable)
+        {
+            TextBoxColorCode.IsEnabled = enable;
+            ButtonColorPicker.IsEnabled = enable;
+            ButtonOpenSplash.IsEnabled = enable;
+            ButtonSplashInsert.IsEnabled = enable;
+            TextBoxSplashfile.IsEnabled = enable;
+            TextBoxWidth.IsEnabled = enable;
         }
 
         private void HandleAudioFile(string filePath)
@@ -178,6 +192,50 @@ namespace NotEnoughContent
             }
 
             return null;
+        }
+
+        private string ParseCssWidth()
+        {
+            string cssPath = Path.Combine(mainDir, @"resources\style\loadscreen.css");
+            int i = 0;
+
+            foreach (string line in File.ReadAllLines(cssPath))
+            {
+                if (line.Contains("width") && i == 0)
+                    i++;
+                else if (line.Contains("width") && i == 1)
+                {
+                    string retstr = line.Trim();
+                    retstr = Regex.Replace(retstr, @"\s+", "");
+                    retstr = retstr.Remove(retstr.Length - 1).Remove(0, 6);
+                    return retstr;
+                }
+            }
+
+            return null;
+        }
+
+        private void WriteCss(Func<string> ParseCss, string searchExpr, System.Windows.Controls.TextBox textBox)
+        {
+            string tempFile = Path.GetTempFileName();
+            string cssPath = Path.Combine(mainDir, @"resources\style\loadscreen.css");
+
+            using (var sr = new StreamReader(cssPath))
+            using (var sw = new StreamWriter(tempFile))
+            {
+                string line;
+
+                while ((line = sr.ReadLine()) != null)
+                {
+                    if (!line.Contains(searchExpr))
+                        sw.WriteLine(line);
+                    else
+                        sw.WriteLine(line.Replace(ParseCss(), textBox.Text));
+                }
+            }
+
+            File.Delete(cssPath);
+            File.Move(tempFile, cssPath);
         }
 
         private void Rectangle_Drop(object sender, DragEventArgs e)
@@ -301,9 +359,9 @@ namespace NotEnoughContent
         private void ComboBoxSlides_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
             if (ComboBoxSlides.SelectedItem != null && ComboBoxSlides.SelectedItem.ToString() != "")
-                ToggleAudioEnabled(true);
+                ToggleSlideEnabled(true);
             else
-                ToggleAudioEnabled(false);
+                ToggleSlideEnabled(false);
         }
 
         private void ButtonDelAudio_Click(object sender, RoutedEventArgs e)
@@ -410,7 +468,48 @@ namespace NotEnoughContent
 
         private void ButtonColorPicker_Click(object sender, RoutedEventArgs e)
         {
+            Color color;
+            bool ok = ColorPickerWindow.ShowDialog(out color, ColorPickerDialogOptions.SimpleView);
 
+            TextBoxColorCode.Text = color.ToString().Remove(1,2);
+        }
+
+        private void TextBoxColorCode_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            Regex rgx = new Regex(@"^#(.)\1\1$|^#[a-fA-F0-9]{6}$");
+            SolidColorBrush black = new SolidColorBrush(Colors.Black);
+            SolidColorBrush red = new SolidColorBrush(Colors.Red);
+            if (rgx.IsMatch(TextBoxColorCode.Text))
+            {
+                WriteCss(ParseCssBackground, "background-color", TextBoxColorCode);
+                LabelColorStatus.Content = "Gespeichert!";
+                TextBoxColorCode.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(TextBoxColorCode.Text));
+                LabelColorStatus.Foreground = black; 
+            }
+            else
+            {
+                LabelColorStatus.Content = "nicht OK!";
+                LabelColorStatus.Foreground = red;
+            }
+        }
+
+        private void TextBoxWidth_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            Regex rgx = new Regex(@"\d+(cm|mm|in|px|pt|pc|em|ex|ch|rem|vw|vh|vmin|vmax|%)");
+            SolidColorBrush black = new SolidColorBrush(Colors.Black);
+            SolidColorBrush red = new SolidColorBrush(Colors.Red);
+
+            if (rgx.IsMatch(TextBoxWidth.Text))
+            {
+                WriteCss(ParseCssWidth, "width", TextBoxWidth);
+                LabelWidthStatus.Content = "Gespeichert!";
+                LabelWidthStatus.Foreground = black;
+            }
+            else
+            {
+                LabelWidthStatus.Content = "nicht OK!";
+                LabelWidthStatus.Foreground = red;
+            }
         }
     }
 }
